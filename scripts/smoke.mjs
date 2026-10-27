@@ -112,7 +112,7 @@ async function main() {
     (sum, order) => sum + new Set(order.items.map((item) => item.supplier)).size,
     0,
   );
-  const email = "smoke@acme.test";
+  const email = process.env.SMOKE_EMAIL || "smoke@acme.test";
 
   console.log("\n[1] Cold run: PDFs, ZIP, SES");
   const first = await createJob("acme", orderIds, email);
