@@ -10,5 +10,6 @@ Thumbs.db
 .vite/
 lambdas/bin/
 lambdas/*.zip
+.aws-deploy/
 localstack-data/
 tmp/

@@ -13,7 +13,6 @@ import {
 import {
   CreateQueueCommand,
   GetQueueAttributesCommand,
-  GetQueueUrlCommand,
 } from "@aws-sdk/client-sqs";
 import { VerifyEmailIdentityCommand } from "@aws-sdk/client-ses";
 import { AwsService } from "../aws/aws.service";
@@ -236,11 +235,19 @@ export class InfraService implements OnApplicationBootstrap {
 
   private async ensureQueues(): Promise<void> {
     if (!env.autoProvision) {
-      for (const name of [QUEUE_NAMES.batches, QUEUE_NAMES.finalize]) {
+      for (const url of [env.batchQueueUrl, env.finalizeQueueUrl]) {
+        if (!url) {
+          throw new Error("SQS queue URLs must be configured when AUTO_PROVISION=false");
+        }
         try {
-          await this.aws.sqs.send(new GetQueueUrlCommand({ QueueName: name }));
+          await this.aws.sqs.send(
+            new GetQueueAttributesCommand({
+              QueueUrl: url,
+              AttributeNames: ["QueueArn"],
+            }),
+          );
         } catch {
-          throw new Error(`SQS queue ${name} does not exist and AUTO_PROVISION=false`);
+          throw new Error(`SQS queue ${url} does not exist and AUTO_PROVISION=false`);
         }
       }
       return;
