@@ -1,8 +1,21 @@
 # PDF Fulfilment Pipeline — AWS Demo
 
-Asynchronous order-to-PDF-to-ZIP pipeline demo built with **React**, **NestJS**, **Go Lambdas**, **SQS**, **S3**, **SES**, **DynamoDB**, and **Redis** for queue admission. Runs locally on **LocalStack**; the same code points at real AWS via environment variables.
+Asynchronous order-to-PDF-to-ZIP pipeline demo built with **React**, **NestJS**, **Go Lambdas**, **SQS**, **S3**, **SES**, **DynamoDB**, and **Redis** for queue admission. Local development runs on **LocalStack**; the same code is deployed to AWS on EC2 with real SQS, S3, SES, DynamoDB and Lambda.
 
 > Select orders → batches queue up → Lambda renders PDFs (S3 cached) → finaliser builds a supplier-grouped ZIP (cached) → SES email with a presigned download link → live progress in the portal.
+
+## Live AWS deployment
+
+| Endpoint | URL |
+| --- | --- |
+| Portal — Cloudflare Tunnel (HTTPS, recommended) | https://pdf-lambda-demo.xxmrphdxx.my |
+| Portal — raw EC2 Elastic IP (HTTP) | http://54.208.30.72 |
+| API health — Cloudflare Tunnel | https://pdf-lambda-demo.xxmrphdxx.my/api/health |
+| API health — raw EC2 Elastic IP | http://54.208.30.72/api/health |
+
+The AWS deployment uses `us-east-1`: one EC2 `t3.micro` running nginx + NestJS + Redis, two Go Lambdas (`pdfworker`, `zipper`), SQS batch/finalize queues with DLQs, S3 caches, DynamoDB, SES and Cloudflare Tunnel ingress. The notification email is configured for the verified SES sandbox address.
+
+The local Docker/LocalStack workflow below is for development; the live portal does not require it.
 
 ## Stack
 
@@ -14,7 +27,7 @@ Asynchronous order-to-PDF-to-ZIP pipeline demo built with **React**, **NestJS**,
 | AWS services | SQS (+DLQs), S3 (+lifecycle), SES, DynamoDB |
 | Local infra | LocalStack, Redis 7, Docker Compose |
 
-## Quick start (Docker)
+## Local quick start (Docker + LocalStack)
 
 Prerequisites: Docker Desktop with Compose, Node 20+ (only for the smoke test), AWS CLI (optional).
 
@@ -208,6 +221,7 @@ Legend: `[ ]` pending · `[x]` done
 - [x] Mutated order invalidates cache and regenerates content
 - [x] Per-client/global concurrency limits hold under burst (observed 2 / 10)
 - [x] `scripts/smoke.mjs` passes (26/26)
+- [x] Live AWS deployment verified via raw Elastic IP and Cloudflare Tunnel (`https://pdf-lambda-demo.xxmrphdxx.my`)
 - [x] README quick start verified on this machine (`http://localhost:8080`)
 
 ## Known limitations
