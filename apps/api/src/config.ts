@@ -24,6 +24,14 @@ function bool(key: string, fallback: boolean): boolean {
   return value === "true" || value === "1" || value === "yes";
 }
 
+function optionalStr(key: string, fallback = ""): string {
+  const value = process.env[key];
+  if (value === undefined) {
+    return fallback;
+  }
+  return value.trim();
+}
+
 export const env = {
   port: num("PORT", 3000),
   corsOrigins: str("CORS_ORIGINS", "http://localhost:5173,http://localhost:8080")
@@ -31,8 +39,9 @@ export const env = {
     .map((origin) => origin.trim())
     .filter(Boolean),
   region: str("AWS_REGION", "us-east-1"),
-  endpoint: str("AWS_ENDPOINT_URL", "http://localhost:4566"),
-  publicEndpoint: str("S3_PUBLIC_ENDPOINT", "http://localhost:4566"),
+  // Empty means real AWS. LocalStack deployments must set these explicitly.
+  endpoint: optionalStr("AWS_ENDPOINT_URL"),
+  publicEndpoint: optionalStr("S3_PUBLIC_ENDPOINT"),
   bucket: str("S3_BUCKET", "pdf-demo"),
   table: str("DDB_TABLE", "pdf-demo"),
   batchQueueUrl: str("SQS_BATCH_QUEUE", "http://localhost:4566/000000000000/pdf-demo-batches"),

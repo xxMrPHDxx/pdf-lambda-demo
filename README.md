@@ -57,6 +57,7 @@ docker compose up -d localstack redis
 
 ```bash
 npm install
+cp .env.example .env             # LocalStack endpoints + test credentials
 npm run dev -w apps/api          # NestJS on :3000
 npm run dev -w apps/web          # Vite on :5173 (proxies /api)
 ```

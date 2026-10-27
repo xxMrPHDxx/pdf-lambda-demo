@@ -32,6 +32,13 @@ func main() {
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 	cfg := config.Load()
+	// devrunner is the local-only SQS consumer, so default it to LocalStack.
+	if cfg.Endpoint == "" {
+		cfg.Endpoint = "http://localhost:4566"
+	}
+	if cfg.PublicEndpoint == "" {
+		cfg.PublicEndpoint = "http://localhost:4566"
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

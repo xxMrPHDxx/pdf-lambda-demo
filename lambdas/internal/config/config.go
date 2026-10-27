@@ -28,9 +28,10 @@ type Config struct {
 
 func Load() Config {
 	return Config{
-		Region:            env("AWS_REGION", "us-east-1"),
-		Endpoint:          env("AWS_ENDPOINT_URL", "http://localhost:4566"),
-		PublicEndpoint:    env("S3_PUBLIC_ENDPOINT", "http://localhost:4566"),
+		Region: env("AWS_REGION", "us-east-1"),
+		// Empty means real AWS. The local dev runner supplies LocalStack defaults.
+		Endpoint:          env("AWS_ENDPOINT_URL", ""),
+		PublicEndpoint:    env("S3_PUBLIC_ENDPOINT", ""),
 		Bucket:            env("S3_BUCKET", "pdf-demo"),
 		Table:             env("DDB_TABLE", "pdf-demo"),
 		BatchQueueURL:     env("SQS_BATCH_QUEUE", "http://localhost:4566/000000000000/pdf-demo-batches"),
