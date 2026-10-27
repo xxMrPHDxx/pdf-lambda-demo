@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+**/.vite
+.git
+.gitignore
+*.log
+*.zip
+job-id*.txt
+download-*.zip
+lambdas/bin
+lambdas/dist
+README.md
+PLAN.md

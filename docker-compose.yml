@@ -1,0 +1,121 @@
+services:
+  localstack:
+    image: localstack/localstack:3
+    container_name: pdfdemo-localstack
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs,ses,dynamodb
+      DEBUG: "0"
+      AWS_DEFAULT_REGION: us-east-1
+      PERSISTENCE: "0"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  redis:
+    image: redis:7-alpine
+    container_name: pdfdemo-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: pdfdemo-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      CORS_ORIGINS: http://localhost:5173,http://localhost:8080
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      S3_PUBLIC_ENDPOINT: http://localhost:4566
+      AUTO_PROVISION: "true"
+      S3_BUCKET: pdf-demo
+      DDB_TABLE: pdf-demo
+      SQS_BATCH_QUEUE: http://localstack:4566/000000000000/pdf-demo-batches
+      SQS_FINALIZE_QUEUE: http://localstack:4566/000000000000/pdf-demo-finalize
+      REDIS_URL: redis://redis:6379
+      BATCH_SIZE: "4"
+      MAX_RUNNING_JOBS: "10"
+      MAX_CLIENT_RUNNING_JOBS: "2"
+      PDF_CACHE_DAYS: "7"
+      ZIP_CACHE_HOURS: "3"
+      SES_FROM: orders@pdfdemo.local
+      SES_SAVE_TO_S3: "true"
+      PRESIGN_EXPIRES_SECONDS: "604800"
+    depends_on:
+      localstack:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  pdf-worker:
+    build:
+      context: .
+      dockerfile: docker/lambdas.Dockerfile
+    command: ["-role", "pdfworker"]
+    environment: &worker-env
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_ENDPOINT_URL: http://localstack:4566
+      S3_BUCKET: pdf-demo
+      S3_PUBLIC_ENDPOINT: http://localhost:4566
+      DDB_TABLE: pdf-demo
+      SQS_BATCH_QUEUE: http://localstack:4566/000000000000/pdf-demo-batches
+      SQS_FINALIZE_QUEUE: http://localstack:4566/000000000000/pdf-demo-finalize
+      PDF_RENDER_DELAY_MS: "150"
+      PDF_CACHE_DAYS: "7"
+      ZIP_CACHE_HOURS: "3"
+      WORKER_CONCURRENCY: "5"
+      SES_FROM: orders@pdfdemo.local
+      SES_SAVE_TO_S3: "true"
+      PRESIGN_EXPIRES_SECONDS: "604800"
+      PORTAL_URL: http://localhost:8080
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+  zip-worker:
+    build:
+      context: .
+      dockerfile: docker/lambdas.Dockerfile
+    command: ["-role", "zipper"]
+    environment: *worker-env
+    depends_on:
+      localstack:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    container_name: pdfdemo-web
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
